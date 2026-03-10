@@ -14,22 +14,34 @@
 
 ## Exercise Domain-Driven Design & Strong Typing in TypeScript
 
+## A Practical Bank Domain with Smart Constructors, Branded Types & Observers
+This project is a hands‑on exploration of Domain‑Driven Design (DDD) and strong typing in TypeScript.
+It demonstrates how to build a safe, expressive, and bug‑resistant domain using:
+
+* Branded types
+* Smart constructors
+* Value objects
+* Entities
+* Pure domain logic
+* Observer pattern for side effects
+
+The domain used here is a Bank Account system — simple enough to understand, but rich enough to show real DDD value.
+
+
 ## What You Will Learn
 
-| ---- Concept --------------     | -------- What it solves ---------------------------------                                             |
+| ---- Concept --------------     | -------- What it Matters ---------------------------------                                             |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| -- **Branded Types** --         | Prevent mixing up values that share the same primitive type (e.g., Email vs Phone)                    |
+| -- **Branded Types** --         | Prevent mixing values that share the same primitive type (e.g., AccountId vs Balance).                    |
 | -- **Smart Constructors** --    | Validate business rules at creation time so invalid values never exist                                |
-| -- **Value Objects** --         | Model domain concepts (Money, Email, OperatingHours) as immutable types defined by their value        |
-| -- **Entities** --              | Model things with identity and lifecycle (Table, Order) that enforce their own invariants             |
-| -- **Parse, Don't Validate** -- | Transform raw input into guaranteed-valid types at the boundary, then trust the types everywhere else |
+| -- **Value Objects** --         | Represent domain concepts (Balance, DailyLimit, PositiveAmount) as immutable, validated types.        |
+| -- **Entities** --              | Model things with identity and lifecycle (BankAccount).             |
+| -- **Pure Domain Logic** --     | Keep business rules deterministic and side‑effect‑free. |
+| -- **Observer Pattern** --      | Trigger side effects (SMS alerts, audit logs) without polluting domain logic |
+| -- **Parse, Don't Validate** -- | Convert raw input into safe domain types at the boundary. |
 
 ## Project Structure
 
-```
-ex-01/
-  index.ts                      # CLI runner -- runs functions here
-```
 
 ```
 src/
@@ -50,7 +62,52 @@ src/
 
 ```
 
+## 🧠 Core Domain Concepts
 
+### 1. Branded Types
+Make illegal states unrepresentable.
+
+```ts
+type Balance = number & { readonly __brand: unique symbol }
+```
+
+A raw number cannot be used as a Balance unless it comes from a smart constructor.
+
+### 2. Smart Constructors
+Validate once → trust everywhere.
+
+```ts
+function createBalance(amount: number): Balance {
+  if (amount < 0) throw new Error("Balance cannot be negative")
+  return amount as Balance
+}
+```
+
+### 3. Value Objects
+Immutable, validated domain concepts:
+
+* Balance
+* DailyLimit
+* PositiveAmount
+
+### 4. Entities
+A BankAccount has identity and enforces its own invariants.
+
+### 5. Pure Domain Logic
+withdraw() is a pure function:
+
+* No side effects
+* No I/O
+* No logs
+* Just domain rules
+
+### 6. Observer Pattern
+Side effects live outside the domain:
+
+- SMS alerts
+- Audit logs
+- Fraud detection
+- Domain emits events → observers react.
 
 ### Getting Started
 
@@ -59,62 +116,18 @@ src/
 npm install
 
 # Run the exercises
-npm run exercises
+npm run dev
 ```
 
-Select an exercise (1-8) or run all of them (9). After running, open `silent_errors.log` to see every silent bug that was triggered.
-
-### How each exercise works
-
-Each exercise file follows the same structure:
-
-1. **Header comments** explain the anti-pattern and the DDD concept that fixes it.
-2. **A HINT block** shows a concrete code example of the solution pattern.
-3. **A TODO comment** tells you exactly what to change.
-4. **The buggy code** demonstrates the problem in action.
-
-### Your task for each exercise:
-
-1. **Read** the header comments to understand the anti-pattern and the fix.
-2. **Implement** the branded type / Value Object / Entity described in the hint.
-3. **Refactor** the exercise function to use your new types.
-4. **Verify** that the previously-silent bugs now produce either compile-time errors or runtime exceptions.
-
-### Example -- fixing Exercise 1 (Price)
-
-Before (primitive):
-
-```ts
-type MenuItem = {
-	name: string
-	price: number // accepts -50, no complaints
-	quantity: number
-}
-```
-
-After (branded type):
-
-```ts
-type Price = number & { readonly __brand: unique symbol }
-
-function createPrice(amount: number): Price {
-	if (amount < 0) throw new Error("Price cannot be negative")
-	if (amount > 10_000) throw new Error("Price exceeds maximum")
-	return amount as Price
-}
-
-type MenuItem = {
-	name: string
-	price: Price // only accepts values from createPrice()
-	quantity: number
-}
-```
-
-Now `price: -50` is a compile-time error (a raw `number` is not assignable to `Price`), and `createPrice(-50)` throws at runtime. The bug is impossible.
 
 ## Key Takeaways
 
-- **Make illegal states unrepresentable.** If a value should never be negative, make the type reject negatives. If two fields should not be swappable, give them different types.
-- **Push validation to the boundary.** Parse raw input (user forms, API responses, database rows) into strong domain types at the edge of your system. Inside the domain, trust the types.
-- **Domain logic belongs inside domain objects.** An `OperatingHours` object should know how to answer "am I open at 2 AM?". A `Money` object should know how to add two amounts in the same currency. Don't scatter this logic across utility functions.
-- **Types are documentation.** When a function takes `Price` instead of `number`, its intent is clear without comments. When a function takes `Email` instead of `string`, you know the value has been validated.
+- **Make illegal states unrepresentable.** If a value should never be negative (Balance, DailyLimit, PositiveAmount), enforce this at the type level. Branded types ensure invalid primitives can’t even enter the domain.
+- **Push validation to the boundary.** Raw input (API, CLI, database, user forms) should be converted into safe domain types using smart constructors. Inside the domain, you trust the types completely.
+- **Use Value Objects to model meaning, not primitives.** A Balance is not just a number. A DailyLimit is not just a number. Value Objects give clarity, safety, and domain expressiveness.
+- **Entities enforce their own invariants.** A BankAccount knows how to maintain its own rules (e.g., cannot withdraw more than balance, cannot exceed daily limit). This keeps business logic consistent and centralized.
+- **Domain logic must be pure.** Functions like withdraw() should contain no side effects, no logs, no I/O. They should only compute the next valid state of the domain.
+- **Side effects belong in the infrastructure layer.** Observers (SMS alerts, audit logs) react to domain events without polluting the domain logic. This keeps the domain clean and testable.
+- **Events make the system expressive and extensible.** When something meaningful happens (withdrawal, limit exceeded, suspicious activity), the domain emits an event. Observers can be added or removed without changing domain code.
+- **Types are living documentation.** When a function takes Balance instead of number, its intent is immediately clear. Strong typing reduces ambiguity and improves maintainability.
+- **Strong typing + DDD = fewer bugs, clearer intent, safer systems.**  The combination of branded types, smart constructors, and pure domain logic creates a system where many bugs become impossible by design.
