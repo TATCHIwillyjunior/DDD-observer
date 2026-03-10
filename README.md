@@ -12,8 +12,6 @@
 8. Entities
 9. Observer Pattern
 
-## Exercise Domain-Driven Design & Strong Typing in TypeScript
-
 ## A Practical Bank Domain with Smart Constructors, Branded Types & Observers
 This project is a hands‑on exploration of Domain‑Driven Design (DDD) and strong typing in TypeScript.
 It demonstrates how to build a safe, expressive, and bug‑resistant domain using:
